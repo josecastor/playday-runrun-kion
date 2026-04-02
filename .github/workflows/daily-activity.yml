@@ -1,0 +1,53 @@
+name: Daily Activity Summary
+
+on:
+  schedule:
+    # 07h BRT (UTC-3) nos dias úteis — processa atividades do dia anterior
+    - cron: '0 10 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Data do resumo (YYYY-MM-DD) — deixe em branco para ontem'
+        required: false
+        default: ''
+      dry_run:
+        description: 'Dry run: exibe o resumo sem publicar no mural'
+        type: boolean
+        default: false
+      user_id:
+        description: 'User ID específico — deixe em branco para processar todos'
+        required: false
+        default: ''
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run summary
+        env:
+          RUNRUN_USERS: ${{ secrets.RUNRUN_USERS }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.date }}" ]; then
+            ARGS="$ARGS --date ${{ inputs.date }}"
+          fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+          if [ -n "${{ inputs.user_id }}" ]; then
+            ARGS="$ARGS --user-id ${{ inputs.user_id }}"
+          fi
+          python main.py $ARGS
