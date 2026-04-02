@@ -13,6 +13,7 @@ Uso:
 
 import argparse
 import logging
+import os
 import sys
 from datetime import date, timedelta
 
@@ -85,6 +86,12 @@ def process_user(user_cfg: dict, target_date: date, dry_run: bool) -> None:
     print("\n" + "=" * 60)
     print(bulletin_text)
     print("=" * 60 + "\n")
+
+    # Escreve no Job Summary do GitHub Actions (se disponível)
+    summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_file:
+        with open(summary_file, "a") as f:
+            f.write(bulletin_text + "\n\n")
 
     if dry_run:
         logger.info(f"[{user_id}] Modo dry-run: resumo NÃO publicado no mural.")
