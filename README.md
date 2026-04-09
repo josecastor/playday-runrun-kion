@@ -158,6 +158,21 @@ playday-runrun-kion/
 └── requirements.txt
 ```
 
+## Limitação conhecida da API — janela de ~30 dias
+
+O endpoint `/work_periods` do Runrun.it retorna apenas os registros dos **últimos ~30 dias**, ignorando quaisquer parâmetros de data. Isso afeta o resumo mensal quando rodado no **dia 1 do mês**:
+
+| Situação | Cobertura |
+|----------|-----------|
+| Dia 1 do mês atual (ex: 01/04) | Cobre dias **02/03 a 31/03** ✅ — o dia 01/03 fica 31 dias atrás e escapa da janela ❌ |
+| Último dia do mês anterior (ex: 31/03) | Cobre o mês inteiro ✅ |
+
+**Estratégias:**
+- **Aceitar a limitação** — o dia 1 de cada mês raramente tem atividade significativa.
+- **Rodar `--monthly --dry-run` no dia 28–30** para capturar todos os dias antes do mês fechar, e publicar manualmente.
+
+---
+
 ## Testes
 
 ```bash
