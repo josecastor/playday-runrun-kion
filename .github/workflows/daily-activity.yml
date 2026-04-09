@@ -18,6 +18,10 @@ on:
         description: 'User ID específico — deixe em branco para processar todos'
         required: false
         default: ''
+      monthly:
+        description: 'Forçar resumo mensal do mês anterior'
+        type: boolean
+        default: false
 
 jobs:
   summarize:
@@ -51,5 +55,8 @@ jobs:
           fi
           if [ -n "${{ inputs.user_id }}" ]; then
             ARGS="$ARGS --user-id ${{ inputs.user_id }}"
+          fi
+          if [ "${{ inputs.monthly }}" = "true" ]; then
+            ARGS="$ARGS --monthly"
           fi
           python main.py $ARGS
