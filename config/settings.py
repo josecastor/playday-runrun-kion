@@ -62,6 +62,7 @@ def get_users() -> list[dict]:
         "user_token": creds["user_token"],
         "user_id": os.getenv("RUNRUN_USER_ID", "jose-castor"),
         "bulletin_team_id": os.getenv("RUNRUN_BULLETIN_TEAM_ID", ""),
+        "bulletin_team_id_monthly": os.getenv("RUNRUN_BULLETIN_TEAM_ID_MONTHLY", ""),
     }]
 
 
