@@ -135,6 +135,7 @@ def process_user_monthly(user_cfg: dict, year: int, month: int, dry_run: bool) -
     client = RunrunClient(app_key=app_key, user_token=user_token)
 
     user_name = get_user_name(client, user_id)
+    logger.info(f"Nome: {user_name}")
 
     summary = build_monthly_summary(client, user_id, year, month)
     bulletin_text = format_monthly_for_bulletin(summary, user_name=user_name)
@@ -201,16 +202,17 @@ def main():
     logger.info(f"Processando {len(users)} usuário(s) para {target_date}.")
 
     # Resumo diário — sempre executa
-    errors = []
+    daily_errors = []
     for user_cfg in users:
         try:
             process_user(user_cfg, target_date, args.dry_run)
         except Exception as e:
             logger.error(f"[{user_cfg['user_id']}] Erro no resumo diário: {e}")
-            errors.append(user_cfg["user_id"])
+            daily_errors.append(user_cfg["user_id"])
 
-    # Resumo mensal — automatico no dia 1 ou forçado via --monthly
+    # Resumo mensal — automático no dia 1 ou forçado via --monthly
     today = date.today()
+    monthly_errors = []
     if today.day == 1 or args.monthly:
         if today.month == 1:
             prev_year = today.year - 1
@@ -226,10 +228,13 @@ def main():
                 process_user_monthly(user_cfg, prev_year, prev_month, args.dry_run)
             except Exception as e:
                 logger.error(f"[{user_cfg['user_id']}] Erro no resumo mensal: {e}")
-                errors.append(user_cfg["user_id"])
+                monthly_errors.append(user_cfg["user_id"])
 
-    if errors:
-        logger.error(f"Falha em {len(errors)} operação(ões): {', '.join(errors)}")
+    if daily_errors:
+        logger.error(f"Falha no resumo diário em {len(daily_errors)} usuário(s): {', '.join(daily_errors)}")
+    if monthly_errors:
+        logger.error(f"Falha no resumo mensal em {len(monthly_errors)} usuário(s): {', '.join(monthly_errors)}")
+    if daily_errors or monthly_errors:
         sys.exit(1)
 
 
