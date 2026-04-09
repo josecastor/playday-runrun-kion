@@ -12,8 +12,10 @@ def make_task(task_id=1, title="Tarefa Teste", project="Proj", time_str="1h", co
         title=title,
         project=project,
         board_stage="Em andamento",
-        time_worked_seconds=3600,
-        time_worked_str=time_str,
+        time_worked_day_seconds=3600,
+        time_worked_total_seconds=3600,
+        time_worked_day_str=time_str,
+        time_worked_total_str=time_str,
         comments=comments or [],
     )
 
@@ -31,8 +33,8 @@ class TestFormatter(unittest.TestCase):
             target_date=date(2026, 3, 26),
             user_id="jose-castor",
             tasks=[make_task(101, "Implementar login", "Projeto X", "1h 30min", ["Ajustei validacao"])],
-            total_time_seconds=5400,
-            total_time_str="1h 30min",
+            total_day_seconds=5400,
+            total_day_str="1h 30min",
         )
         result = format_for_bulletin(summary)
         self.assertIn("26/03/2026", result)
@@ -41,15 +43,15 @@ class TestFormatter(unittest.TestCase):
         self.assertIn("Projeto X", result)
         self.assertIn("1h 30min", result)
         self.assertIn("Ajustei validacao", result)
-        self.assertIn("Total trabalhado: 1h 30min", result)
+        self.assertIn("Total do dia: 1h 30min", result)
 
     def test_format_task_without_comments(self):
         summary = DailySummary(
             target_date=date(2026, 3, 26),
             user_id="jose-castor",
             tasks=[make_task(200, "Sem comentarios", "Proj", "30min", [])],
-            total_time_seconds=1800,
-            total_time_str="30min",
+            total_day_seconds=1800,
+            total_day_str="30min",
         )
         result = format_for_bulletin(summary)
         self.assertIn("| — |", result)
@@ -60,8 +62,8 @@ class TestFormatter(unittest.TestCase):
             target_date=date(2026, 3, 26),
             user_id="jose-castor",
             tasks=[task],
-            total_time_seconds=3600,
-            total_time_str="1h",
+            total_day_seconds=3600,
+            total_day_str="1h",
         )
         result = format_for_bulletin(summary)
         self.assertIn("\\|", result)
@@ -72,8 +74,8 @@ class TestFormatter(unittest.TestCase):
             target_date=date(2026, 3, 26),
             user_id="jose-castor",
             tasks=[task],
-            total_time_seconds=3600,
-            total_time_str="1h",
+            total_day_seconds=3600,
+            total_day_str="1h",
         )
         result = format_for_bulletin(summary)
         self.assertIn("Comentario 1 \u00b7 Comentario 2", result)
@@ -83,12 +85,12 @@ class TestFormatter(unittest.TestCase):
             target_date=date(2026, 3, 26),
             user_id="jose-castor",
             tasks=[make_task()],
-            total_time_seconds=3600,
-            total_time_str="1h",
+            total_day_seconds=3600,
+            total_day_str="1h",
         )
         result = format_for_bulletin(summary)
         self.assertIn("| Tarefa |", result)
-        self.assertIn("| Tempo |", result)
+        self.assertIn("| Tempo Dia |", result)
         self.assertIn("| Comentários |", result)
 
 
