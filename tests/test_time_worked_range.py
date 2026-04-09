@@ -96,6 +96,20 @@ class TestGetTimeWorkedRange(unittest.TestCase):
             (date(2026, 3, 10), 502),
         ])
 
+    def test_raises_when_start_after_end(self):
+        client = self._make_client([])
+        with self.assertRaises(ValueError):
+            get_time_worked_range(client, "jose-castor", date(2026, 3, 31), date(2026, 3, 1))
+
+    def test_skips_entries_with_invalid_date_format(self):
+        client = self._make_client([
+            {"start": "not-a-date", "worked_time": 600, "task_id": 999},
+            {"start": "2026-03-10T09:00:00Z", "worked_time": 600, "task_id": 100},
+        ])
+        result = get_time_worked_range(client, "jose-castor", date(2026, 3, 1), date(2026, 3, 31))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["task_id"], 100)
+
 
 if __name__ == "__main__":
     unittest.main()

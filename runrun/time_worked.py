@@ -90,17 +90,23 @@ def get_time_worked_range(
     end_date: date,
 ) -> list[dict]:
     """
-    Retorna tarefas trabalhadas pelo usuario no intervalo [start_date, end_date].
-    Faz uma unica chamada a API e filtra localmente.
+    Retorna tarefas trabalhadas pelo usuário no intervalo [start_date, end_date].
+    Faz uma única chamada a API e filtra localmente.
     Agrupa por (day, task_id) somando worked_time.
     Resultado ordenado por (day, task_id).
     """
+    if start_date > end_date:
+        raise ValueError(
+            f"start_date ({start_date}) deve ser anterior ou igual a end_date ({end_date})."
+        )
+
     logger.info(
-        f"Buscando work_periods para '{user_id}' de {start_date} a {end_date}..."
+        f"Buscando work_periods para '{user_id}' do período {start_date} a {end_date}..."
     )
 
     params = {"user_id": user_id, "limit": 100}
     results = client.get("/work_periods", params=params)
+    # client.get() já faz paginação automática via Link headers — todos os registros são retornados
 
     if not isinstance(results, list):
         logger.warning("Resposta inesperada de /work_periods, esperava lista.")
@@ -128,7 +134,7 @@ def get_time_worked_range(
         totals[key] = totals.get(key, 0) + worked
 
     if not totals:
-        logger.info(f"Nenhum periodo de trabalho encontrado de {start_date} a {end_date}.")
+        logger.info(f"Nenhum período de trabalho encontrado de {start_date} a {end_date}.")
         return []
 
     entries = [
