@@ -1,4 +1,4 @@
-from resume.builder import DailySummary
+from resume.builder import DailySummary, MonthlySummary
 
 
 def format_for_bulletin(summary: DailySummary, user_name: str = "") -> str:
@@ -57,3 +57,42 @@ def _format_comments(comments: list[str]) -> str:
 
 def _escape_md(text: str) -> str:
     return text.replace("|", "\\|").replace("\n", " ").replace("\r", "")
+
+
+_MONTH_NAMES = {
+    1: "Janeiro", 2: "Fevereiro", 3: "Marco", 4: "Abril",
+    5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
+    9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
+}
+
+
+def format_monthly_for_bulletin(summary: MonthlySummary, user_name: str = "") -> str:
+    month_name = _MONTH_NAMES.get(summary.month, str(summary.month))
+    display_name = user_name or summary.user_id
+    header = f"## PlayDay Mensal de {display_name} — {month_name}/{summary.year}"
+
+    if not summary.entries:
+        return f"{header}\n\nNenhuma atividade registrada neste mes."
+
+    lines = [
+        header,
+        "",
+        "| Dia | Tarefa | Descricao | Projeto | Tempo Dia |",
+        "|-----|--------|-----------|---------|-----------|",
+    ]
+
+    for entry in summary.entries:
+        day_str = entry.day.strftime("%d/%m")
+        title = _escape_md(entry.title)
+        project = _escape_md(entry.project)
+        lines.append(
+            f"| {day_str}"
+            f" | {entry.task_code}"
+            f" | {title}"
+            f" | {project}"
+            f" | {entry.time_worked_day_str} |"
+        )
+
+    lines.append("")
+    lines.append(f"**Total do mes: {summary.total_month_str}**")
+    return "\n".join(lines)
