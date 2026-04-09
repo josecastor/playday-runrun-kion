@@ -9,6 +9,7 @@ Uso:
     python main.py --date 2026-03-25        # data específica
     python main.py --dry-run                # exibe o resumo sem publicar
     python main.py --user-id jose-castor    # processa apenas um usuário específico
+    python main.py --monthly                # força execução do resumo mensal (mês anterior)
 """
 
 import argparse
@@ -35,6 +36,7 @@ Exemplos:
   python main.py --date 2026-03-25        # data específica
   python main.py --dry-run                # visualiza sem publicar no mural
   python main.py --user-id jose-castor    # processa apenas este usuário
+  python main.py --monthly                # força resumo mensal do mês anterior
   python main.py --date 2026-03-25 --dry-run
         """
     )
@@ -57,11 +59,16 @@ Exemplos:
         metavar="USER_ID",
         help="Processa apenas este usuário (padrão: todos os usuários configurados).",
     )
+    parser.add_argument(
+        "--monthly",
+        action="store_true",
+        help="Força execução do resumo mensal do mês anterior.",
+    )
     return parser.parse_args()
 
 
 def process_user(user_cfg: dict, target_date: date, dry_run: bool) -> None:
-    """Gera e (opcionalmente) publica o resumo de um único usuário."""
+    """Gera e (opcionalmente) publica o resumo diário de um único usuário."""
     from runrun.client import RunrunClient
     from runrun.users import get_user_name
     from resume.builder import build_daily_summary
@@ -87,7 +94,6 @@ def process_user(user_cfg: dict, target_date: date, dry_run: bool) -> None:
     print(bulletin_text)
     print("=" * 60 + "\n")
 
-    # Escreve no Job Summary do GitHub Actions (se disponível)
     summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_file:
         with open(summary_file, "a") as f:
@@ -109,6 +115,55 @@ def process_user(user_cfg: dict, target_date: date, dry_run: bool) -> None:
         app_key=app_key, user_token=user_token,
     )
     logger.info(f"[{user_id}] Concluído!")
+
+
+def process_user_monthly(user_cfg: dict, year: int, month: int, dry_run: bool) -> None:
+    """Gera e (opcionalmente) publica o resumo mensal de um único usuário."""
+    from runrun.client import RunrunClient
+    from runrun.users import get_user_name
+    from resume.builder import build_monthly_summary
+    from resume.formatter import format_monthly_for_bulletin
+    from runrun.bulletin import post_to_team_bulletin
+
+    user_id = user_cfg["user_id"]
+    app_key = user_cfg["app_key"]
+    user_token = user_cfg["user_token"]
+    bulletin_team_id = user_cfg.get("bulletin_team_id_monthly") or user_cfg.get("bulletin_team_id", "")
+
+    logger.info(f"Gerando resumo mensal — usuário: {user_id} | mês: {month:02d}/{year}")
+
+    client = RunrunClient(app_key=app_key, user_token=user_token)
+
+    user_name = get_user_name(client, user_id)
+
+    summary = build_monthly_summary(client, user_id, year, month)
+    bulletin_text = format_monthly_for_bulletin(summary, user_name=user_name)
+
+    print("\n" + "=" * 60)
+    print(bulletin_text)
+    print("=" * 60 + "\n")
+
+    summary_file = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_file:
+        with open(summary_file, "a") as f:
+            f.write(bulletin_text + "\n\n")
+
+    if dry_run:
+        logger.info(f"[{user_id}] Modo dry-run: resumo mensal NÃO publicado no mural.")
+        return
+
+    if not bulletin_team_id:
+        logger.error(
+            f"[{user_id}] bulletin_team_id não configurado para resumo mensal. "
+            "Use --dry-run para apenas visualizar."
+        )
+        return
+
+    post_to_team_bulletin(
+        client, bulletin_team_id, bulletin_text,
+        app_key=app_key, user_token=user_token,
+    )
+    logger.info(f"[{user_id}] Resumo mensal concluído!")
 
 
 def main():
@@ -145,16 +200,36 @@ def main():
 
     logger.info(f"Processando {len(users)} usuário(s) para {target_date}.")
 
+    # Resumo diário — sempre executa
     errors = []
     for user_cfg in users:
         try:
             process_user(user_cfg, target_date, args.dry_run)
         except Exception as e:
-            logger.error(f"[{user_cfg['user_id']}] Erro: {e}")
+            logger.error(f"[{user_cfg['user_id']}] Erro no resumo diário: {e}")
             errors.append(user_cfg["user_id"])
 
+    # Resumo mensal — automatico no dia 1 ou forçado via --monthly
+    today = date.today()
+    if today.day == 1 or args.monthly:
+        if today.month == 1:
+            prev_year = today.year - 1
+            prev_month = 12
+        else:
+            prev_year = today.year
+            prev_month = today.month - 1
+
+        logger.info(f"Executando resumo mensal para {prev_month:02d}/{prev_year}...")
+
+        for user_cfg in users:
+            try:
+                process_user_monthly(user_cfg, prev_year, prev_month, args.dry_run)
+            except Exception as e:
+                logger.error(f"[{user_cfg['user_id']}] Erro no resumo mensal: {e}")
+                errors.append(user_cfg["user_id"])
+
     if errors:
-        logger.error(f"Falha em {len(errors)} usuário(s): {', '.join(errors)}")
+        logger.error(f"Falha em {len(errors)} operação(ões): {', '.join(errors)}")
         sys.exit(1)
 
 
