@@ -13,6 +13,7 @@ Uso:
 """
 
 import argparse
+import calendar
 import logging
 import os
 import sys
@@ -210,9 +211,10 @@ def main():
             logger.error(f"[{user_cfg['user_id']}] Erro no resumo diário: {e}")
             daily_errors.append(user_cfg["user_id"])
 
-    # Resumo mensal — automático no dia 1 ou forçado via --monthly
     today = date.today()
     monthly_errors = []
+
+    # Resumo mensal do mês anterior — automático no dia 1 ou forçado via --monthly
     if today.day == 1 or args.monthly:
         if today.month == 1:
             prev_year = today.year - 1
@@ -228,6 +230,21 @@ def main():
                 process_user_monthly(user_cfg, prev_year, prev_month, args.dry_run)
             except Exception as e:
                 logger.error(f"[{user_cfg['user_id']}] Erro no resumo mensal: {e}")
+                monthly_errors.append(user_cfg["user_id"])
+
+    # Resumo mensal do mês atual — automático no último dia do mês.
+    # Garante cobertura total antes que o dia 1 saia da janela deslizante de ~30 dias da API.
+    last_day_of_month = calendar.monthrange(today.year, today.month)[1]
+    if today.day == last_day_of_month:
+        logger.info(
+            f"Último dia do mês — executando resumo mensal para {today.month:02d}/{today.year}..."
+        )
+
+        for user_cfg in users:
+            try:
+                process_user_monthly(user_cfg, today.year, today.month, args.dry_run)
+            except Exception as e:
+                logger.error(f"[{user_cfg['user_id']}] Erro no resumo mensal do mês atual: {e}")
                 monthly_errors.append(user_cfg["user_id"])
 
     if daily_errors:

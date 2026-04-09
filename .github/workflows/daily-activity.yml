@@ -4,6 +4,9 @@ on:
   schedule:
     # 07h BRT (UTC-3) nos dias úteis — processa atividades do dia anterior
     - cron: '0 10 * * 1-5'
+    # 20h BRT (UTC-3) nos dias 28-31 — roda o mensal do mês atual no último dia do mês.
+    # GitHub Actions não suporta "L" no cron; o script detecta internamente se é o último dia.
+    - cron: '0 23 28-31 * *'
   workflow_dispatch:
     inputs:
       date:

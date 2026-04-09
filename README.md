@@ -32,7 +32,12 @@ Gera **resumos de atividades** do Runrun.it — diário e mensal — e publica a
 
 ## GitHub Actions (recomendado)
 
-O workflow roda automaticamente todo dia útil às **07h BRT**, processa as atividades do dia anterior e publica no mural. No **dia 1 de cada mês**, roda também o resumo mensal do mês anterior.
+O workflow roda automaticamente todo dia útil às **07h BRT**, processa as atividades do dia anterior e publica no mural. Há dois gatilhos automáticos para o resumo mensal:
+
+| Quando | Mês processado | Por quê |
+|--------|---------------|---------|
+| **Dia 1 de cada mês** | Mês anterior | Cobre dias 2–31 (dia 1 do mês anterior já caiu fora da janela da API) |
+| **Último dia do mês, 20h BRT** | Mês atual | Garante cobertura completa antes da janela deslizante da API fechar |
 
 ### 1. Configurar o Secret `RUNRUN_USERS`
 
@@ -160,16 +165,14 @@ playday-runrun-kion/
 
 ## Limitação conhecida da API — janela de ~30 dias
 
-O endpoint `/work_periods` do Runrun.it retorna apenas os registros dos **últimos ~30 dias**, ignorando quaisquer parâmetros de data. Isso afeta o resumo mensal quando rodado no **dia 1 do mês**:
+O endpoint `/work_periods` do Runrun.it retorna apenas os registros dos **últimos ~30 dias**, ignorando quaisquer parâmetros de data. Por isso o workflow roda o mensal duas vezes:
 
-| Situação | Cobertura |
-|----------|-----------|
-| Dia 1 do mês atual (ex: 01/04) | Cobre dias **02/03 a 31/03** ✅ — o dia 01/03 fica 31 dias atrás e escapa da janela ❌ |
-| Último dia do mês anterior (ex: 31/03) | Cobre o mês inteiro ✅ |
+| Quando roda | Mês | Cobertura |
+|-------------|-----|-----------|
+| Dia 1 (07h) | Mês anterior | Dias 2–31 ✅ — o dia 1 do mês anterior (31 dias atrás) fica fora da janela ❌ |
+| Último dia do mês (20h) | Mês atual | Mês inteiro ✅ |
 
-**Estratégias:**
-- **Aceitar a limitação** — o dia 1 de cada mês raramente tem atividade significativa.
-- **Rodar `--monthly --dry-run` no dia 28–30** para capturar todos os dias antes do mês fechar, e publicar manualmente.
+> **Atenção:** em meses de 31 dias, o dia 1 fica exatamente no limite de 30 dias da janela. Se a API reduzir a janela, esse dia pode ficar descoberto. Para meses de 28–30 dias a cobertura é garantida com margem.
 
 ---
 
