@@ -72,12 +72,12 @@ def format_monthly_for_bulletin(summary: MonthlySummary, user_name: str = "") ->
     header = f"## PlayDay Mensal de {display_name} — {month_name}/{summary.year}"
 
     if not summary.entries:
-        return f"{header}\n\nNenhuma atividade registrada neste mes."
+        return f"{header}\n\nNenhuma atividade registrada neste mês."
 
     lines = [
         header,
         "",
-        "| Dia | Tarefa | Descricao | Projeto | Tempo Dia |",
+        "| Dia | Tarefa | Descrição | Projeto | Tempo Dia |",
         "|-----|--------|-----------|---------|-----------|",
     ]
 

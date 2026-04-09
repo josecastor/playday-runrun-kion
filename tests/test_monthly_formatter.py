@@ -49,6 +49,7 @@ class TestFormatMonthlyForBulletin(unittest.TestCase):
         self.assertIn("Proj", result)
         self.assertIn("1h", result)
         self.assertIn("Total do mes: 1h", result)
+        self.assertIn("Marco/2026", result)
 
     def test_multiple_days(self):
         entries = [
@@ -95,7 +96,7 @@ class TestFormatMonthlyForBulletin(unittest.TestCase):
         result = format_monthly_for_bulletin(summary)
         self.assertIn("| Dia", result)
         self.assertIn("| Tarefa", result)
-        self.assertIn("| Descricao", result)
+        self.assertIn("| Descrição", result)
         self.assertIn("| Projeto", result)
         self.assertIn("| Tempo Dia", result)
 
@@ -125,6 +126,16 @@ class TestFormatMonthlyForBulletin(unittest.TestCase):
         )
         result = format_monthly_for_bulletin(summary)
         self.assertIn("Fix \\| bug", result)
+
+    def test_escapes_pipe_in_project(self):
+        entry = make_entry(project="Projeto | X")
+        summary = MonthlySummary(
+            year=2026, month=3, user_id="jose-castor",
+            entries=[entry],
+            total_month_seconds=3600, total_month_str="1h",
+        )
+        result = format_monthly_for_bulletin(summary)
+        self.assertIn("Projeto \\| X", result)
 
     def test_month_names_portuguese(self):
         """Verifica que cada mes tem o nome correto em portugues."""
