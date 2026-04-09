@@ -34,7 +34,7 @@ class TestFormatMonthlyForBulletin(unittest.TestCase):
         )
         result = format_monthly_for_bulletin(summary)
         self.assertIn("Nenhuma atividade registrada", result)
-        self.assertIn("Marco/2026", result)
+        self.assertIn("Março/2026", result)
 
     def test_single_entry(self):
         summary = MonthlySummary(
@@ -48,8 +48,8 @@ class TestFormatMonthlyForBulletin(unittest.TestCase):
         self.assertIn("Tarefa Teste", result)
         self.assertIn("Proj", result)
         self.assertIn("1h", result)
-        self.assertIn("Total do mes: 1h", result)
-        self.assertIn("Marco/2026", result)
+        self.assertIn("Total do mês: 1h", result)
+        self.assertIn("Março/2026", result)
 
     def test_multiple_days(self):
         entries = [
@@ -68,7 +68,7 @@ class TestFormatMonthlyForBulletin(unittest.TestCase):
         self.assertIn("#200", result)
         self.assertIn("#201", result)
         self.assertIn("#202", result)
-        self.assertIn("Total do mes: 3h 25min", result)
+        self.assertIn("Total do mês: 3h 25min", result)
 
     def test_same_task_different_days(self):
         entries = [
@@ -140,7 +140,7 @@ class TestFormatMonthlyForBulletin(unittest.TestCase):
     def test_month_names_portuguese(self):
         """Verifica que cada mes tem o nome correto em portugues."""
         month_names = {
-            1: "Janeiro", 2: "Fevereiro", 3: "Marco", 4: "Abril",
+            1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
             5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
             9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
         }

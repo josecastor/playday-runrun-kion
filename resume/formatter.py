@@ -60,7 +60,7 @@ def _escape_md(text: str) -> str:
 
 
 _MONTH_NAMES = {
-    1: "Janeiro", 2: "Fevereiro", 3: "Marco", 4: "Abril",
+    1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril",
     5: "Maio", 6: "Junho", 7: "Julho", 8: "Agosto",
     9: "Setembro", 10: "Outubro", 11: "Novembro", 12: "Dezembro",
 }
@@ -94,5 +94,5 @@ def format_monthly_for_bulletin(summary: MonthlySummary, user_name: str = "") ->
         )
 
     lines.append("")
-    lines.append(f"**Total do mes: {summary.total_month_str}**")
+    lines.append(f"**Total do mês: {summary.total_month_str}**")
     return "\n".join(lines)
