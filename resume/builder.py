@@ -1,9 +1,10 @@
+import calendar
 import logging
 from dataclasses import dataclass, field
 from datetime import date
 
 from runrun.client import RunrunClient
-from runrun.time_worked import get_time_worked
+from runrun.time_worked import get_time_worked, get_time_worked_range
 from runrun.tasks import get_task
 from runrun.comments import get_my_comments_for_task
 
@@ -114,4 +115,95 @@ def build_daily_summary(
         f"Resumo montado: {len(summary.tasks)} tarefa(s), "
         f"tempo no dia: {summary.total_day_str}"
     )
+    return summary
+
+
+@dataclass
+class MonthlyTaskEntry:
+    day: date
+    task_id: int
+    task_code: str
+    title: str
+    project: str
+    board_stage: str
+    time_worked_day_seconds: int
+    time_worked_day_str: str
+
+
+@dataclass
+class MonthlySummary:
+    year: int
+    month: int
+    user_id: str
+    entries: list[MonthlyTaskEntry] = field(default_factory=list)
+    total_month_seconds: int = 0
+    total_month_str: str = ""
+
+
+def build_monthly_summary(
+    client: RunrunClient,
+    user_id: str,
+    year: int,
+    month: int,
+) -> MonthlySummary:
+    """
+    Monta o resumo mensal buscando todos os work_periods do mes
+    e enriquecendo com detalhes de cada tarefa.
+    """
+    summary = MonthlySummary(year=year, month=month, user_id=user_id)
+
+    last_day = calendar.monthrange(year, month)[1]
+    start_date = date(year, month, 1)
+    end_date = date(year, month, last_day)
+
+    time_entries = get_time_worked_range(client, user_id, start_date, end_date)
+
+    if not time_entries:
+        summary.total_month_str = "—"
+        return summary
+
+    failed_task_ids: set[int] = set()
+    task_cache: dict[int, dict] = {}
+
+    for entry in time_entries:
+        task_id = entry["task_id"]
+        day = entry["day"]
+        day_seconds = entry["time_worked_day"]
+
+        if task_id in failed_task_ids:
+            continue
+
+        if task_id not in task_cache:
+            try:
+                task_data = get_task(client, task_id)
+            except LookupError:
+                logger.warning(f"Tarefa #{task_id} não encontrada, pulando.")
+                failed_task_ids.add(task_id)
+                continue
+            if not task_data:
+                logger.warning(f"Não foi possível obter detalhes da tarefa #{task_id}, pulando.")
+                failed_task_ids.add(task_id)
+                continue
+            task_cache[task_id] = task_data
+
+        task_data = task_cache[task_id]
+        title = task_data.get("title") or "Sem título"
+        project = task_data.get("project") or "—"
+        board_stage = task_data.get("board_stage") or "—"
+
+        monthly_entry = MonthlyTaskEntry(
+            day=day,
+            task_id=task_id,
+            task_code=f"#{task_id}",
+            title=title,
+            project=project,
+            board_stage=board_stage,
+            time_worked_day_seconds=day_seconds,
+            time_worked_day_str=_seconds_to_str(day_seconds),
+        )
+        summary.entries.append(monthly_entry)
+        summary.total_month_seconds += day_seconds
+
+    summary.entries.sort(key=lambda e: (e.day, e.task_id))
+    summary.total_month_str = _seconds_to_str(summary.total_month_seconds)
     return summary
